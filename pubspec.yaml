@@ -1,11 +1,11 @@
 name: flutter_application_1
-description: "A new Flutter project."
+description: MobiTravel
 publish_to: "none"
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.11.0
+  sdk: ^3.3.0
 
 dependencies:
   flutter:
@@ -20,6 +20,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  assets:
-    - assets/photo.jpg
