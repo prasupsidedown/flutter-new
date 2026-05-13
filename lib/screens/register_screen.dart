@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../widgets/app_bar.dart';
-import '../widgets/bottom_nav.dart';
+import '../presentation/widgets/shared_widgets.dart';
+import '../core/constants/app_routes.dart';
+// bottom_nav included in shared_widgets
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -146,7 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
+                            onPressed: () => Navigator.pushReplacementNamed(context, AppRoutes.home),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF7B5E2A),
                               foregroundColor: Colors.white,
@@ -171,7 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           children: [
                             const Text('Sudah punya akun? ', style: TextStyle(color: Color(0xFF5A5A4A))),
                             GestureDetector(
-                              onTap: () => Navigator.pushReplacementNamed(context, '/login'),
+                              onTap: () => Navigator.pushReplacementNamed(context, AppRoutes.login),
                               child: const Text(
                                 'Masuk',
                                 style: TextStyle(color: Color(0xFF7B5E2A), fontWeight: FontWeight.w700),
@@ -196,7 +197,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget _buildTab(BuildContext context, String label, bool isActive) {
     return GestureDetector(
       onTap: () {
-        if (!isActive) Navigator.pushReplacementNamed(context, '/login');
+        if (!isActive) Navigator.pushReplacementNamed(context, AppRoutes.login);
       },
       child: Column(
         children: [

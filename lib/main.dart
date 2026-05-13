@@ -1,67 +1,82 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-// Pembayang Screens
-import 'screens/screen_5.dart';
-import 'screens/screen_6.dart';
-import 'screens/screen_7.dart';
-import 'screens/screen_8.dart';
-import 'screens/screen_9.dart';
+// Core
+import 'core/constants/app_routes.dart';
+import 'core/theme/app_theme.dart';
 
-// MobiTravel Screens
-import 'screens/home_screen_new.dart'; // 🏠 HOME UTAMA
-import 'screens/home_screen.dart'; // 👤 ACCOUNT
-import 'screens/detail_screen.dart';
+// Screens
+import 'presentation/screens/home_screen.dart';
+import 'presentation/screens/account_screen.dart';
+import 'presentation/screens/agent_screen.dart';
+import 'presentation/screens/history_screen.dart';
+import 'presentation/screens/login_screen.dart';
+
+// Widgets
+import 'presentation/widgets/virtual_assistant_overlay.dart';
+
+// Original screens (kept)
 import 'screens/search_screen.dart';
+import 'screens/detail_screen.dart';
 import 'screens/booking_screen.dart';
 import 'screens/payment_screen.dart';
-import 'screens/agent_screen.dart';
+import 'screens/register_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+    ),
+  );
+  runApp(const MobiTravelApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class MobiTravelApp extends StatelessWidget {
+  const MobiTravelApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Combined App',
+      title: 'MobiTravel',
       debugShowCheckedModeBanner: false,
-
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFFEF9F1),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1A3328),
-          surface: const Color(0xFFFEF9F1),
-        ),
-        fontFamily: 'Inter',
-      ),
-
-      // 🔥 START DARI HOME UTAMA
-      initialRoute: '/',
-
+      theme: AppTheme.theme,
+      initialRoute: AppRoutes.home,
       routes: {
-        // 🏠 HOME (Travel)
-        '/': (context) => const HomeMainScreen(),
+        // Main tabs (clean architecture screens)
+        AppRoutes.home: (_) => const VirtualAssistantOverlay(
+              child: HomeScreen(),
+            ),
+        AppRoutes.account: (_) => const VirtualAssistantOverlay(
+              child: AccountScreen(),
+            ),
+        AppRoutes.agent: (_) => const VirtualAssistantOverlay(
+              child: AgentScreen(),
+            ),
+        AppRoutes.history: (_) => const VirtualAssistantOverlay(
+              child: HistoryScreen(),
+            ),
+        AppRoutes.login: (_) => const VirtualAssistantOverlay(
+              child: LoginScreen(),
+            ),
 
-        // 🔍 FITUR
-        '/detail': (context) => const DetailScreen(),
-        '/search': (context) => const SearchScreen(),
-        '/booking': (context) => const BookingScreen(),
-        '/payment': (context) => const PaymentScreen(),
-        '/agent': (context) => const AgentScreen(),
-
-        // 👤 ACCOUNT / PROFILE
-        '/account': (context) => const AccountScreen(),
-
-        // 🧪 PEMBAYANG
-        '/screen5': (context) => const Screen5(),
-        '/screen6': (context) => const Screen6(),
-        '/screen7': (context) => const Screen7(),
-        '/screen8': (context) => const Screen8(),
-        '/screen9': (context) => const Screen9(),
+        // Feature screens
+        AppRoutes.search: (_) => const VirtualAssistantOverlay(
+              child: SearchScreen(),
+            ),
+        AppRoutes.detail: (_) => const VirtualAssistantOverlay(
+              child: DetailScreen(),
+            ),
+        AppRoutes.booking: (_) => const VirtualAssistantOverlay(
+              child: BookingScreen(),
+            ),
+        AppRoutes.payment: (_) => const VirtualAssistantOverlay(
+              child: PaymentScreen(),
+            ),
+        AppRoutes.register: (_) => const VirtualAssistantOverlay(
+              child: RegisterScreen(),
+            ),
       },
     );
   }
