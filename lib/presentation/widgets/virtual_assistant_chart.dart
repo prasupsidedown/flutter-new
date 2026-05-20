@@ -1,25 +1,104 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
+import 'virtual_assistant_chat.dart'; // Sesuaikan dengan path file Anda
 
-class VirtualAssistantChat extends StatefulWidget {
-  final VoidCallback onClose;
+// CONTOH PENGGUNAAN VirtualAssistantChat dengan floating button
 
-  const VirtualAssistantChat({
-    super.key,
-    required this.onClose,
-  });
+class HomePageWithChatbot extends StatefulWidget {
+  const HomePageWithChatbot({super.key});
 
   @override
-  State<VirtualAssistantChat> createState() => _VirtualAssistantChatState();
+  State<HomePageWithChatbot> createState() => _HomePageWithChatbotState();
 }
 
-class _VirtualAssistantChatState extends State<VirtualAssistantChat>
+class _HomePageWithChatbotState extends State<HomePageWithChatbot> {
+  bool _isChatVisible = false; // Status apakah chat terbuka atau tidak
+
+  void _toggleChat() {
+    setState(() {
+      _isChatVisible = !_isChatVisible;
+    });
+  }
+
+  void _closeChat() {
+    setState(() {
+      _isChatVisible = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('MobiTravel'),
+        backgroundColor: Colors.blue,
+      ),
+      body: Stack(
+        children: [
+          // Konten utama aplikasi Anda
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Selamat datang di MobiTravel!',
+                  style: TextStyle(fontSize: 20),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _toggleChat,
+                  child: Text(_isChatVisible ? 'Tutup Chat' : 'Buka Chat'),
+                ),
+              ],
+            ),
+          ),
+
+          // ✅ FLOATING CHATBOT - Muncul di kanan bawah
+          if (_isChatVisible)
+            Positioned(
+              right: 16,
+              bottom: 80, // Tinggi dari bawah (ada ruang untuk FAB)
+              child: AnimatedOpacity(
+                opacity: _isChatVisible ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 300),
+                child: VirtualAssistantChat(
+                  onClose: _closeChat, // ✅ Callback untuk tutup chat
+                ),
+              ),
+            ),
+        ],
+      ),
+
+      // ✅ FLOATING ACTION BUTTON untuk buka/tutup chat
+      floatingActionButton: FloatingActionButton(
+        onPressed: _toggleChat,
+        backgroundColor: Colors.blue,
+        child: Icon(
+          _isChatVisible ? Icons.close : Icons.chat,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================
+// CONTOH 2: Dengan animasi slide dari bawah
+// ============================================
+
+class HomePageWithAnimatedChatbot extends StatefulWidget {
+  const HomePageWithAnimatedChatbot({super.key});
+
+  @override
+  State<HomePageWithAnimatedChatbot> createState() =>
+      _HomePageWithAnimatedChatbotState();
+}
+
+class _HomePageWithAnimatedChatbotState
+    extends State<HomePageWithAnimatedChatbot>
     with SingleTickerProviderStateMixin {
-  final TextEditingController _messageController = TextEditingController();
-  final List<ChatMessage> _messages = [];
-  bool _isAccepted = false;
   late AnimationController _animationController;
   late Animation<Offset> _slideAnimation;
+  bool _isChatVisible = false;
 
   @override
   void initState() {
@@ -29,402 +108,83 @@ class _VirtualAssistantChatState extends State<VirtualAssistantChat>
       duration: const Duration(milliseconds: 300),
     );
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
+      begin: const Offset(0, 1), // Mulai dari bawah
+      end: Offset.zero, // Slide ke posisi normal
     ).animate(CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeOutCubic,
+      curve: Curves.easeInOut,
     ));
-    _animationController.forward();
-
-    // Welcome message
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() {
-          _messages.add(ChatMessage(
-            text: 'My Device\n\nLenovo IdeaPad Slim 5 14IMH9',
-            isBot: true,
-            timestamp: DateTime.now(),
-          ));
-        });
-      }
-    });
   }
 
   @override
   void dispose() {
-    _messageController.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
-
+  void _toggleChat() {
     setState(() {
-      _messages.add(ChatMessage(
-        text: _messageController.text,
-        isBot: false,
-        timestamp: DateTime.now(),
-      ));
-    });
-
-    final userMessage = _messageController.text;
-    _messageController.clear();
-
-    // Simulate bot response
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) {
-        setState(() {
-          _messages.add(ChatMessage(
-            text: _getBotResponse(userMessage),
-            isBot: true,
-            timestamp: DateTime.now(),
-          ));
-        });
+      _isChatVisible = !_isChatVisible;
+      if (_isChatVisible) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
       }
     });
   }
 
-  String _getBotResponse(String message) {
-    final lowerMessage = message.toLowerCase();
-    if (lowerMessage.contains('halo') ||
-        lowerMessage.contains('hai') ||
-        lowerMessage.contains('hello')) {
-      return 'Halo! Saya Mobi Assistant, siap membantu Anda merencanakan perjalanan. Ada yang bisa saya bantu?';
-    } else if (lowerMessage.contains('tur') || lowerMessage.contains('paket')) {
-      return 'Kami memiliki berbagai paket tur menarik! Anda bisa melihat daftar lengkapnya di halaman utama atau cari agen terverifikasi untuk rekomendasi terbaik.';
-    } else if (lowerMessage.contains('agen')) {
-      return 'Kami bekerja sama dengan agen-agen terverifikasi yang sudah terpercaya. Kunjungi halaman Mitra Agen untuk melihat daftar lengkapnya!';
-    } else {
-      return 'Terima kasih atas pertanyaan Anda. Saya akan bantu Anda menemukan informasi yang tepat. Apakah ada yang spesifik yang ingin Anda ketahui tentang layanan kami?';
-    }
-  }
-
   void _closeChat() {
-    _animationController.reverse().then((_) {
-      widget.onClose();
+    setState(() {
+      _isChatVisible = false;
+      _animationController.reverse();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return SlideTransition(
-      position: _slideAnimation,
-      child: Container(
-        width: 380,
-        height: 520,
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: const BoxDecoration(
-                color: Color(0xFF5B7FFF),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  topRight: Radius.circular(12),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Text(
-                    'Mobi ChatBot',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: _closeChat,
-                    icon: const Icon(Icons.minimize, color: Colors.white),
-                    iconSize: 20,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-            ),
-
-            // Chat content
-            Expanded(
-              child:
-                  _isAccepted ? _buildChatMessages() : _buildAcceptanceScreen(),
-            ),
-
-            // Input area
-            if (_isAccepted) _buildInputArea(),
-          ],
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('MobiTravel'),
       ),
-    );
-  }
-
-  Widget _buildAcceptanceScreen() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.support_agent_rounded,
-              color: AppColors.primary,
-              size: 40,
-            ),
+          // Konten utama
+          const Center(
+            child: Text('Your app content here'),
           ),
-          const SizedBox(height: 24),
-          const Text(
-            'My Device',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF2A2A2A),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'This chat session may be recorded for training and quality assurance purposes.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 13,
-                height: 1.5,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Checkbox(
-                value: false,
-                onChanged: (v) {},
-                fillColor: WidgetStateProperty.all(Colors.transparent),
-                side: const BorderSide(color: Colors.white54),
-              ),
-              Expanded(
-                child: RichText(
-                  text: TextSpan(
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
-                    ),
-                    children: [
-                      const TextSpan(text: 'By continuing, you agree to the '),
-                      TextSpan(
-                        text: 'Privacy Statement',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                      const TextSpan(text: '.'),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _isAccepted = true;
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5B7FFF),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'I accept',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+
+          // ✅ CHATBOT dengan animasi slide
+          if (_isChatVisible)
+            Positioned(
+              right: 16,
+              bottom: 80,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: VirtualAssistantChat(
+                  onClose: _closeChat,
                 ),
               ),
             ),
-          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildChatMessages() {
-    return Container(
-      color: const Color(0xFF1E1E1E),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _messages.length,
-        itemBuilder: (context, index) {
-          final message = _messages[index];
-          return _buildMessageBubble(message);
-        },
+      floatingActionButton: FloatingActionButton(
+        onPressed: _toggleChat,
+        child: Icon(_isChatVisible ? Icons.close : Icons.chat),
       ),
     );
-  }
-
-  Widget _buildMessageBubble(ChatMessage message) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment:
-            message.isBot ? MainAxisAlignment.start : MainAxisAlignment.end,
-        children: [
-          if (message.isBot) ...[
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.smart_toy_rounded,
-                color: Colors.white,
-                size: 18,
-              ),
-            ),
-            const SizedBox(width: 10),
-          ],
-          Flexible(
-            child: Column(
-              crossAxisAlignment: message.isBot
-                  ? CrossAxisAlignment.start
-                  : CrossAxisAlignment.end,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: message.isBot
-                        ? const Color(0xFF2A2A2A)
-                        : AppColors.primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    message.text,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _formatTime(message.timestamp),
-                  style: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInputArea() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF2A2A2A),
-        border: Border(
-          top: BorderSide(color: Color(0xFF3A3A3A)),
-        ),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.more_vert, color: Colors.white54),
-            iconSize: 20,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              maxLength: 150,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-              decoration: InputDecoration(
-                hintText: 'Ask a question...',
-                hintStyle: const TextStyle(color: Colors.white38),
-                filled: true,
-                fillColor: const Color(0xFF1E1E1E),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 10,
-                ),
-                counterStyle: const TextStyle(
-                  color: Colors.white38,
-                  fontSize: 11,
-                ),
-              ),
-              onSubmitted: (_) => _sendMessage(),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: _sendMessage,
-            icon: const Icon(Icons.send, color: Color(0xFF5B7FFF)),
-            iconSize: 20,
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
   }
 }
 
-class ChatMessage {
-  final String text;
-  final bool isBot;
-  final DateTime timestamp;
+// ============================================
+// CARA PAKAI:
+// ============================================
+// 1. Copy file virtual_assistant_chat.dart ke project Anda
+// 2. Import di halaman yang ingin pakai chatbot
+// 3. Gunakan salah satu contoh di atas
+// 4. Sesuaikan posisi dan styling sesuai kebutuhan
 
-  ChatMessage({
-    required this.text,
-    required this.isBot,
-    required this.timestamp,
-  });
+void main() {
+  runApp(const MaterialApp(
+    home: HomePageWithChatbot(), // atau HomePageWithAnimatedChatbot()
+  ));
 }
