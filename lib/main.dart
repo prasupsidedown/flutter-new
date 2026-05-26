@@ -11,16 +11,11 @@ import 'presentation/screens/account_screen.dart';
 import 'presentation/screens/agent_screen.dart';
 import 'presentation/screens/history_screen.dart';
 import 'presentation/screens/login_screen.dart';
+import 'presentation/screens/vehicle_detail_screen.dart';
+import 'presentation/screens/booking_screen.dart';
 
 // Widgets
 import 'presentation/widgets/virtual_assistant_overlay.dart';
-
-// Original screens (kept)
-import 'screens/search_screen.dart';
-import 'screens/detail_screen.dart';
-import 'screens/booking_screen.dart';
-import 'screens/payment_screen.dart';
-import 'screens/register_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,7 +39,6 @@ class MobiTravelApp extends StatelessWidget {
       theme: AppTheme.theme,
       initialRoute: AppRoutes.home,
       routes: {
-        // Main tabs (clean architecture screens)
         AppRoutes.home: (_) => const VirtualAssistantOverlay(
               child: HomeScreen(),
             ),
@@ -60,22 +54,14 @@ class MobiTravelApp extends StatelessWidget {
         AppRoutes.login: (_) => const VirtualAssistantOverlay(
               child: LoginScreen(),
             ),
-
-        // Feature screens
-        AppRoutes.search: (_) => const VirtualAssistantOverlay(
-              child: SearchScreen(),
-            ),
         AppRoutes.detail: (_) => const VirtualAssistantOverlay(
-              child: DetailScreen(),
+              child: VehicleDetailScreen(),
+            ),
+        AppRoutes.vehicleDetail: (_) => const VirtualAssistantOverlay(
+              child: VehicleDetailScreen(),
             ),
         AppRoutes.booking: (_) => const VirtualAssistantOverlay(
               child: BookingScreen(),
-            ),
-        AppRoutes.payment: (_) => const VirtualAssistantOverlay(
-              child: PaymentScreen(),
-            ),
-        AppRoutes.register: (_) => const VirtualAssistantOverlay(
-              child: RegisterScreen(),
             ),
       },
     );

@@ -11,4 +11,5 @@ class AppRoutes {
   static const String agent = '/agent';
   static const String history = '/history';
   static const String account = '/account';
+  static const String vehicleDetail = '/vehicle-detail';
 }
