@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_routes.dart';
+import '../../data/repositories/travel_repository.dart';
 import '../widgets/shared_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -13,9 +14,11 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   bool _obscurePassword = true;
+  bool _isLoading = false;
   late TabController _tabController;
-  final _nikController = TextEditingController();
+  final _emailController = TextEditingController(); // NIK → Email
   final _passwordController = TextEditingController();
+  final _repo = TravelRepositoryImpl();
 
   @override
   void initState() {
@@ -26,9 +29,43 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   void dispose() {
     _tabController.dispose();
-    _nikController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      _showSnackbar('Email dan kata sandi wajib diisi');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final result = await _repo.login(email, password);
+
+    setState(() => _isLoading = false);
+
+    if (result['success']) {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      }
+    } else {
+      _showSnackbar(result['message'] ?? 'Login gagal');
+    }
+  }
+
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: AppColors.primary,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -39,10 +76,7 @@ class _LoginScreenState extends State<LoginScreen>
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Header / brand area
               _buildBrandHeader(),
-
-              // Tab bar
               Container(
                 color: Colors.white,
                 child: TabBar(
@@ -67,19 +101,14 @@ class _LoginScreenState extends State<LoginScreen>
                   },
                 ),
               ),
-
               const SizedBox(height: 24),
               _buildLoginForm(context),
               const SizedBox(height: 24),
-
               _OrDivider(),
               const SizedBox(height: 20),
-
               _PartnerCard(
-                  onTap: () =>
-                      Navigator.pushNamed(context, AppRoutes.agent)),
+                  onTap: () => Navigator.pushNamed(context, AppRoutes.agent)),
               const SizedBox(height: 32),
-
               const Text(
                 '© 2025 MobiTravel. Dibuat untuk eksplorasi.',
                 style: TextStyle(fontSize: 12, color: AppColors.textMuted),
@@ -99,7 +128,6 @@ class _LoginScreenState extends State<LoginScreen>
       color: Colors.white,
       child: Column(
         children: [
-          // Logo circle
           Container(
             width: 72,
             height: 72,
@@ -112,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen>
               borderRadius: BorderRadius.circular(22),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.25),
+                  color: AppColors.primary.withValues(alpha: 0.25),
                   blurRadius: 20,
                   offset: const Offset(0, 8),
                 ),
@@ -153,10 +181,9 @@ class _LoginScreenState extends State<LoginScreen>
           const Text(
             'Selamat Datang Kembali',
             style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-            ),
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary),
           ),
           const SizedBox(height: 6),
           const Text(
@@ -166,14 +193,14 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           const SizedBox(height: 28),
 
-          // NIK field
-          _FieldLabel('NIK (Nomor Induk Kependudukan)'),
+          // Email field
+          const _FieldLabel('Email'),
           const SizedBox(height: 8),
           _InputField(
-            controller: _nikController,
-            hint: '16 digit nomor identitas',
-            prefixIcon: Icons.fingerprint_outlined,
-            keyboardType: TextInputType.number,
+            controller: _emailController,
+            hint: 'contoh@email.com',
+            prefixIcon: Icons.email_outlined,
+            keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 20),
 
@@ -206,8 +233,7 @@ class _LoginScreenState extends State<LoginScreen>
             prefixIcon: Icons.lock_outline,
             obscureText: _obscurePassword,
             suffixIcon: GestureDetector(
-              onTap: () =>
-                  setState(() => _obscurePassword = !_obscurePassword),
+              onTap: () => setState(() => _obscurePassword = !_obscurePassword),
               child: Icon(
                 _obscurePassword
                     ? Icons.visibility_off_outlined
@@ -220,33 +246,27 @@ class _LoginScreenState extends State<LoginScreen>
           const SizedBox(height: 28),
 
           // Login button
-          PrimaryButton(
-            label: 'Masuk Sekarang',
-            icon: Icons.arrow_forward,
-            onPressed: () => Navigator.pushReplacementNamed(
-                context, AppRoutes.home),
-          ),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : PrimaryButton(
+                  label: 'Masuk Sekarang',
+                  icon: Icons.arrow_forward,
+                  onPressed: _handleLogin,
+                ),
 
           const SizedBox(height: 20),
 
-          // Social login options
           Row(
             children: [
               Expanded(
-                child: _SocialButton(
-                  icon: Icons.g_mobiledata,
-                  label: 'Google',
-                  onTap: () {},
-                ),
-              ),
+                  child: _SocialButton(
+                      icon: Icons.g_mobiledata, label: 'Google', onTap: () {})),
               const SizedBox(width: 12),
               Expanded(
-                child: _SocialButton(
-                  icon: Icons.facebook_outlined,
-                  label: 'Facebook',
-                  onTap: () {},
-                ),
-              ),
+                  child: _SocialButton(
+                      icon: Icons.facebook_outlined,
+                      label: 'Facebook',
+                      onTap: () {})),
             ],
           ),
         ],
@@ -255,6 +275,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 }
 
+// Widget classes tetap sama persis
 class _FieldLabel extends StatelessWidget {
   final String text;
   const _FieldLabel(this.text);
@@ -300,18 +321,15 @@ class _InputField extends StatelessWidget {
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
-        style: const TextStyle(
-            fontSize: 14, color: AppColors.textPrimary),
+        style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(
-              color: AppColors.textMuted, fontSize: 14),
-          prefixIcon: Icon(prefixIcon,
-              color: AppColors.textMuted, size: 20),
+          hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+          prefixIcon: Icon(prefixIcon, color: AppColors.textMuted, size: 20),
           suffixIcon: suffixIcon,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16, vertical: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
       ),
     );
@@ -341,14 +359,11 @@ class _SocialButton extends StatelessWidget {
           children: [
             Icon(icon, size: 22, color: AppColors.textSecondary),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textSecondary,
-              ),
-            ),
+            Text(label,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textSecondary)),
           ],
         ),
       ),
@@ -362,20 +377,18 @@ class _OrDivider extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
-        children: [
-          const Expanded(child: Divider(color: AppColors.border)),
-          const Padding(
+        children: const [
+          Expanded(child: Divider(color: AppColors.border)),
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              'ATAU',
-              style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textMuted,
-                  letterSpacing: 1.5,
-                  fontWeight: FontWeight.w600),
-            ),
+            child: Text('ATAU',
+                style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.w600)),
           ),
-          const Expanded(child: Divider(color: AppColors.border)),
+          Expanded(child: Divider(color: AppColors.border)),
         ],
       ),
     );
@@ -409,9 +422,8 @@ class _PartnerCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: AppColors.accent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    color: AppColors.accent,
+                    borderRadius: BorderRadius.circular(12)),
                 child: const Icon(Icons.handshake_outlined,
                     color: Colors.white, size: 22),
               ),
@@ -420,20 +432,15 @@ class _PartnerCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Bermitra dengan MobiTravel',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
+                    Text('Bermitra dengan MobiTravel',
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary)),
                     SizedBox(height: 3),
-                    Text(
-                      'Jangkau ribuan penjelajah setiap hari.',
-                      style: TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary),
-                    ),
+                    Text('Jangkau ribuan penjelajah setiap hari.',
+                        style: TextStyle(
+                            fontSize: 12, color: AppColors.textSecondary)),
                   ],
                 ),
               ),
