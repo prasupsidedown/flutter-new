@@ -1,5 +1,69 @@
+// ==================== User ====================
+class User {
+  final int id;
+  final String name;
+  final String email;
+  final String? phone;
+  final bool isActive;
+
+  User({
+    required this.id,
+    required this.name,
+    required this.email,
+    this.phone,
+    this.isActive = true,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
+      phone: json['phone'],
+      isActive: json['is_active'] ?? true,
+    );
+  }
+}
+
+// ==================== Destination ====================
+class Destination {
+  final int id;
+  final String name;
+  final String location;
+  final double rating;
+  final String category;
+  final String? province;
+  final String? city;
+  final String? imageUrl;
+
+  Destination({
+    required this.id,
+    required this.name,
+    required this.location,
+    required this.rating,
+    required this.category,
+    this.province,
+    this.city,
+    this.imageUrl,
+  });
+
+  factory Destination.fromJson(Map<String, dynamic> json) {
+    return Destination(
+      id: json['id'] ?? 0,
+      name: json['name'] ?? '',
+      location: json['location'] ?? json['city'] ?? '',
+      rating: (json['rating'] ?? 4.5).toDouble(),
+      category: json['category'] ?? 'Wisata',
+      province: json['province'],
+      city: json['city'],
+      imageUrl: json['image_url'],
+    );
+  }
+}
+
+// ==================== Tour / Package ====================
 class Tour {
-  final String id;
+  final int id;
   final String title;
   final String location;
   final String province;
@@ -9,7 +73,7 @@ class Tour {
   final double rating;
   final String category;
 
-  const Tour({
+  Tour({
     required this.id,
     required this.title,
     required this.location,
@@ -23,57 +87,60 @@ class Tour {
 
   factory Tour.fromJson(Map<String, dynamic> json) {
     return Tour(
-      id: json['id'].toString(),
-      title: json['title'] ?? '',
-      location: json['location'] ?? '',
+      id: json['id'] ?? 0,
+      title: json['name'] ?? '',
+      location: json['location'] ?? json['city'] ?? '',
       province: json['province'] ?? '',
-      price: json['price'].toString(),
-      duration: json['duration'] ?? '',
-      capacity: json['capacity'].toString(),
-      rating: (json['rating'] ?? 0).toDouble(),
-      category: json['category'] ?? '',
+      price:
+          'Rp ${(json['price'] ?? 0).toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
+      duration: json['duration'] ?? '1 Hari',
+      capacity: '${json['quota'] ?? 0} Peserta',
+      rating: (json['rating'] ?? 4.5).toDouble(),
+      category: json['category'] ?? 'Wisata',
     );
   }
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'location': location,
-        'province': province,
-        'price': price,
-        'duration': duration,
-        'capacity': capacity,
-        'rating': rating,
-        'category': category,
-      };
 }
 
-class Destination {
-  final String id;
+// ==================== Vehicle ====================
+class Vehicle {
+  final int id;
   final String name;
-  final String location;
-  final double rating;
-  final String category;
+  final String type;
+  final int capacity;
+  final int priceWithDriver;
+  final int priceWithoutDriver;
+  final String status;
+  final List<dynamic> routes;
+  final String? photoUrl;
 
-  const Destination({
+  Vehicle({
     required this.id,
     required this.name,
-    required this.location,
-    required this.rating,
-    required this.category,
+    required this.type,
+    required this.capacity,
+    required this.priceWithDriver,
+    required this.priceWithoutDriver,
+    required this.status,
+    required this.routes,
+    this.photoUrl,
   });
 
-  factory Destination.fromJson(Map<String, dynamic> json) {
-    return Destination(
-      id: json['id'].toString(),
+  factory Vehicle.fromJson(Map<String, dynamic> json) {
+    return Vehicle(
+      id: json['id'] ?? 0,
       name: json['name'] ?? '',
-      location: json['location'] ?? '',
-      rating: (json['rating'] ?? 0).toDouble(),
-      category: json['category'] ?? '',
+      type: json['type'] ?? '',
+      capacity: json['capacity'] ?? 0,
+      priceWithDriver: json['price_with_driver'] ?? 0,
+      priceWithoutDriver: json['price_without_driver'] ?? 0,
+      status: json['status'] ?? 'available',
+      routes: json['routes'] ?? [],
+      photoUrl: json['photo_url'],
     );
   }
 }
 
+// ==================== Agent ====================
 class Agent {
   final String id;
   final String name;
@@ -84,7 +151,7 @@ class Agent {
   final bool isVerified;
   final bool isTopPick;
 
-  const Agent({
+  Agent({
     required this.id,
     required this.name,
     required this.location,
@@ -98,16 +165,19 @@ class Agent {
   factory Agent.fromJson(Map<String, dynamic> json) {
     return Agent(
       id: json['id'].toString(),
-      name: json['name'] ?? '',
-      location: json['location'] ?? '',
-      rating: (json['rating'] ?? 0).toDouble(),
-      totalTours: json['total_tours'] ?? 0,
-      specialty: json['specialty'] ?? '',
-      isVerified: json['is_verified'] ?? false,
-      isTopPick: json['is_top_pick'] ?? false,
+      name: json['agency_name'] ?? '',
+      location: '${json['city'] ?? ''}, ${json['province'] ?? ''}',
+      rating: double.tryParse(json['rating']?.toString() ?? '0') ?? 0,
+      totalTours: json['total_trips'] ?? 0,
+      specialty: json['description'] ?? 'Travel',
+      isVerified: json['status'] == 'active',
+      isTopPick: (json['rating'] ?? 0) > 4.5,
     );
   }
 }
+
+// ==================== Trip History ====================
+enum TripStatus { active, completed, cancelled }
 
 class TripHistory {
   final String id;
@@ -117,7 +187,7 @@ class TripHistory {
   final String price;
   final TripStatus status;
 
-  const TripHistory({
+  TripHistory({
     required this.id,
     required this.tourName,
     required this.agentName,
@@ -127,68 +197,56 @@ class TripHistory {
   });
 
   factory TripHistory.fromJson(Map<String, dynamic> json) {
+    String statusStr = json['payment_status'] ?? 'pending';
+    TripStatus status;
+    if (statusStr == 'paid') {
+      status = TripStatus.completed;
+    } else if (statusStr == 'expired') {
+      status = TripStatus.cancelled;
+    } else {
+      status = TripStatus.active;
+    }
+
     return TripHistory(
-      id: json['id'].toString(),
-      tourName: json['tour_name'] ?? '',
-      agentName: json['agent_name'] ?? '',
-      dateRange: json['date_range'] ?? '',
-      price: json['price'].toString(),
-      status: TripStatus.values.firstWhere(
-        (e) => e.name == json['status'],
-        orElse: () => TripStatus.active,
-      ),
+      id: json['booking_code'] ?? '',
+      tourName: json['tourPackage']?['name'] ??
+          json['vehicle']?['name'] ??
+          'Perjalanan',
+      agentName: json['agent']?['agency_name'] ?? 'Agen',
+      dateRange: json['travel_date'] ?? '',
+      price:
+          'Rp ${(json['total_price'] ?? 0).toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
+      status: status,
     );
   }
 }
 
-enum TripStatus { active, completed, cancelled }
+// ==================== Booking ====================
+class BookingHistory {
+  final String bookingCode;
+  final String bookingType;
+  final String customerName;
+  final int totalPrice;
+  final String paymentStatus;
+  final String travelDate;
 
-class UserProfile {
-  final String name;
-  final String email;
-  final int totalTrips;
-  final int totalDestinations;
-  final String points;
-  final String membershipLevel;
-
-  const UserProfile({
-    required this.name,
-    required this.email,
-    required this.totalTrips,
-    required this.totalDestinations,
-    required this.points,
-    required this.membershipLevel,
+  BookingHistory({
+    required this.bookingCode,
+    required this.bookingType,
+    required this.customerName,
+    required this.totalPrice,
+    required this.paymentStatus,
+    required this.travelDate,
   });
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) {
-    return UserProfile(
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      totalTrips: json['total_trips'] ?? 0,
-      totalDestinations: json['total_destinations'] ?? 0,
-      points: json['points'].toString(),
-      membershipLevel: json['membership_level'] ?? 'Silver',
-    );
-  }
-}
-
-// Tambahan: User untuk Auth
-class User {
-  final int id;
-  final String name;
-  final String email;
-
-  const User({
-    required this.id,
-    required this.name,
-    required this.email,
-  });
-
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      id: json['id'],
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
+  factory BookingHistory.fromJson(Map<String, dynamic> json) {
+    return BookingHistory(
+      bookingCode: json['booking_code'] ?? '',
+      bookingType: json['booking_type'] ?? '',
+      customerName: json['customer_name'] ?? '',
+      totalPrice: json['total_price'] ?? 0,
+      paymentStatus: json['payment_status'] ?? '',
+      travelDate: json['travel_date'] ?? '',
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_routes.dart';
 import '../../data/repositories/travel_repository.dart';
@@ -16,7 +17,7 @@ class _LoginScreenState extends State<LoginScreen>
   bool _obscurePassword = true;
   bool _isLoading = false;
   late TabController _tabController;
-  final _emailController = TextEditingController(); // NIK → Email
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _repo = TravelRepositoryImpl();
 
@@ -62,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.error,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -106,8 +107,7 @@ class _LoginScreenState extends State<LoginScreen>
               const SizedBox(height: 24),
               _OrDivider(),
               const SizedBox(height: 20),
-              _PartnerCard(
-                  onTap: () => Navigator.pushNamed(context, AppRoutes.agent)),
+              _PartnerCard(),
               const SizedBox(height: 32),
               const Text(
                 '© 2025 MobiTravel. Dibuat untuk eksplorasi.',
@@ -192,8 +192,6 @@ class _LoginScreenState extends State<LoginScreen>
                 fontSize: 14, color: AppColors.textSecondary, height: 1.5),
           ),
           const SizedBox(height: 28),
-
-          // Email field
           const _FieldLabel('Email'),
           const SizedBox(height: 8),
           _InputField(
@@ -203,8 +201,6 @@ class _LoginScreenState extends State<LoginScreen>
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 20),
-
-          // Password field
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -244,8 +240,6 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
           const SizedBox(height: 28),
-
-          // Login button
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : PrimaryButton(
@@ -253,29 +247,12 @@ class _LoginScreenState extends State<LoginScreen>
                   icon: Icons.arrow_forward,
                   onPressed: _handleLogin,
                 ),
-
-          const SizedBox(height: 20),
-
-          Row(
-            children: [
-              Expanded(
-                  child: _SocialButton(
-                      icon: Icons.g_mobiledata, label: 'Google', onTap: () {})),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: _SocialButton(
-                      icon: Icons.facebook_outlined,
-                      label: 'Facebook',
-                      onTap: () {})),
-            ],
-          ),
         ],
       ),
     );
   }
 }
 
-// Widget classes tetap sama persis
 class _FieldLabel extends StatelessWidget {
   final String text;
   const _FieldLabel(this.text);
@@ -336,41 +313,6 @@ class _InputField extends StatelessWidget {
   }
 }
 
-class _SocialButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _SocialButton(
-      {required this.icon, required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border, width: 1.5),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 22, color: AppColors.textSecondary),
-            const SizedBox(width: 8),
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textSecondary)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _OrDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -396,15 +338,19 @@ class _OrDivider extends StatelessWidget {
 }
 
 class _PartnerCard extends StatelessWidget {
-  final VoidCallback onTap;
-  const _PartnerCard({required this.onTap});
+  Future<void> _launchAgentRegister() async {
+    final Uri url = Uri.parse('http://127.0.0.1:8000/agen/register');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: GestureDetector(
-        onTap: onTap,
+        onTap: _launchAgentRegister,
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(

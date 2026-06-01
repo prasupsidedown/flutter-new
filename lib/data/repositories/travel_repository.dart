@@ -1,41 +1,69 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/api_constants.dart';
 import '../../domain/entities/entities.dart';
 
 abstract class TravelRepository {
-  List<Tour> getFeaturedTours();
-  List<Destination> getPopularDestinations();
-  List<Agent> getVerifiedAgents();
-  List<TripHistory> getTripHistory();
-  UserProfile getUserProfile();
-
-  // API methods
+  // Auth
   Future<Map<String, dynamic>> login(String email, String password);
   Future<Map<String, dynamic>> register(
-      String name, String email, String password);
+      String name, String email, String password, String phone);
   Future<void> logout();
   Future<String?> getToken();
-  Future<List<Agent>> fetchAgentsFromApi();
+  Future<Map<String, dynamic>> getUserProfile();
+
+  // Data
+  Future<List<Destination>> fetchDestinations();
+  Future<List<Tour>> fetchTourPackages();
+  Future<List<Vehicle>> fetchVehicles();
+  Future<List<Agent>> fetchAgents();
+
+  // Booking
+  Future<Map<String, dynamic>> createBooking(Map<String, dynamic> data);
+  Future<List<TripHistory>> fetchMyBookings();
+
+  // Dummy (untuk fallback)
+  List<Destination> getPopularDestinations();
+  List<Tour> getFeaturedTours();
+  List<Agent> getVerifiedAgents();
+  List<TripHistory> getTripHistory();
 }
 
 class TravelRepositoryImpl implements TravelRepository {
-  final _storage = const FlutterSecureStorage();
+  final bool _isWeb = identical(0, 0.0) ? false : true;
+  final _secureStorage = const FlutterSecureStorage();
 
-  // ==================== Token Management ====================
+  Future<SharedPreferences> _getPrefs() async =>
+      await SharedPreferences.getInstance();
 
   Future<void> _saveToken(String token) async {
-    await _storage.write(key: 'token', value: token);
+    if (_isWeb) {
+      final prefs = await _getPrefs();
+      await prefs.setString('token', token);
+    } else {
+      await _secureStorage.write(key: 'token', value: token);
+    }
   }
 
   @override
   Future<String?> getToken() async {
-    return await _storage.read(key: 'token');
+    if (_isWeb) {
+      final prefs = await _getPrefs();
+      return prefs.getString('token');
+    } else {
+      return await _secureStorage.read(key: 'token');
+    }
   }
 
   Future<void> _deleteToken() async {
-    await _storage.delete(key: 'token');
+    if (_isWeb) {
+      final prefs = await _getPrefs();
+      await prefs.remove('token');
+    } else {
+      await _secureStorage.delete(key: 'token');
+    }
   }
 
   // ==================== Auth API ====================
@@ -47,18 +75,17 @@ class TravelRepositoryImpl implements TravelRepository {
         Uri.parse(ApiConstants.login),
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: jsonEncode({'email': email, 'password': password}),
       );
 
       final data = jsonDecode(res.body);
 
-      if (res.statusCode == 200) {
-        await _saveToken(data['token']);
-        return {'success': true, 'user': User.fromJson(data['user'])};
+      if (res.statusCode == 200 && data['success'] == true) {
+        await _saveToken(data['data']['token']);
+        return {'success': true, 'user': User.fromJson(data['data']['user'])};
       }
-
       return {'success': false, 'message': data['message'] ?? 'Login gagal'};
     } catch (e) {
       return {'success': false, 'message': 'Tidak dapat terhubung ke server'};
@@ -67,29 +94,28 @@ class TravelRepositoryImpl implements TravelRepository {
 
   @override
   Future<Map<String, dynamic>> register(
-      String name, String email, String password) async {
+      String name, String email, String password, String phone) async {
     try {
       final res = await http.post(
         Uri.parse(ApiConstants.register),
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: jsonEncode({
           'name': name,
           'email': email,
           'password': password,
-          'password_confirmation': password,
+          'phone': phone
         }),
       );
 
       final data = jsonDecode(res.body);
 
-      if (res.statusCode == 201) {
-        await _saveToken(data['token']);
-        return {'success': true, 'user': User.fromJson(data['user'])};
+      if (res.statusCode == 201 && data['success'] == true) {
+        await _saveToken(data['data']['token']);
+        return {'success': true, 'user': User.fromJson(data['data']['user'])};
       }
-
       return {'success': false, 'message': data['message'] ?? 'Register gagal'};
     } catch (e) {
       return {'success': false, 'message': 'Tidak dapat terhubung ke server'};
@@ -100,106 +126,198 @@ class TravelRepositoryImpl implements TravelRepository {
   Future<void> logout() async {
     try {
       final token = await getToken();
-      await http.post(
-        Uri.parse(ApiConstants.logout),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      );
+      if (token != null) {
+        await http.post(
+          Uri.parse(ApiConstants.logout),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Accept': 'application/json'
+          },
+        );
+      }
     } catch (_) {
-      // tetap hapus token meski request gagal
     } finally {
       await _deleteToken();
     }
   }
 
-  // ==================== Agent API ====================
-
   @override
-  Future<List<Agent>> fetchAgentsFromApi() async {
+  Future<Map<String, dynamic>> getUserProfile() async {
     try {
       final token = await getToken();
+      if (token == null)
+        return {'success': false, 'message': 'Token tidak ditemukan'};
+
       final res = await http.get(
-        Uri.parse(ApiConstants.agen),
+        Uri.parse(ApiConstants.profile),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json'
+        },
+      );
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200 && data['success'] == true) {
+        return {'success': true, 'user': User.fromJson(data['data'])};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal ambil profil'
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server'};
+    }
+  }
+
+  // ==================== API Data ====================
+
+  @override
+  Future<List<Destination>> fetchDestinations() async {
+    try {
+      final res = await http.get(Uri.parse(ApiConstants.destinations),
+          headers: {'Accept': 'application/json'});
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final List destinations = data['data']['data'];
+        return destinations.map((e) => Destination.fromJson(e)).toList();
+      }
+      return getPopularDestinations();
+    } catch (e) {
+      return getPopularDestinations();
+    }
+  }
+
+  @override
+  Future<List<Tour>> fetchTourPackages() async {
+    try {
+      final res = await http.get(Uri.parse(ApiConstants.tourPackages),
+          headers: {'Accept': 'application/json'});
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final List packages = data['data']['data'];
+        return packages.map((e) => Tour.fromJson(e)).toList();
+      }
+      return getFeaturedTours();
+    } catch (e) {
+      return getFeaturedTours();
+    }
+  }
+
+  @override
+  Future<List<Vehicle>> fetchVehicles() async {
+    try {
+      final res = await http.get(Uri.parse(ApiConstants.vehicles),
+          headers: {'Accept': 'application/json'});
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final List vehicles = data['data']['data'];
+        return vehicles.map((e) => Vehicle.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  @override
+  Future<List<Agent>> fetchAgents() async {
+    try {
+      final res = await http.get(Uri.parse(ApiConstants.agents),
+          headers: {'Accept': 'application/json'});
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final List agents = data['data']['data'];
+        return agents.map((e) => Agent.fromJson(e)).toList();
+      }
+      return getVerifiedAgents();
+    } catch (e) {
+      return getVerifiedAgents();
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> createBooking(Map<String, dynamic> data) async {
+    try {
+      final token = await getToken();
+      if (token == null)
+        return {'success': false, 'message': 'Silakan login terlebih dahulu'};
+
+      final res = await http.post(
+        Uri.parse(ApiConstants.createBooking),
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: jsonEncode(data),
+      );
+
+      final responseData = jsonDecode(res.body);
+      if (res.statusCode == 201 && responseData['success'] == true) {
+        return {
+          'success': true,
+          'message': responseData['message'],
+          'data': responseData['data']
+        };
+      }
+      return {
+        'success': false,
+        'message': responseData['message'] ?? 'Booking gagal'
+      };
+    } catch (e) {
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server'};
+    }
+  }
+
+  @override
+  Future<List<TripHistory>> fetchMyBookings() async {
+    try {
+      final token = await getToken();
+      if (token == null) return getTripHistory();
+
+      final res = await http.get(
+        Uri.parse(ApiConstants.myBookings),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json'
         },
       );
 
       if (res.statusCode == 200) {
-        final data = jsonDecode(res.body)['data'] as List;
-        return data.map((e) => Agent.fromJson(e)).toList();
+        final data = jsonDecode(res.body);
+        final List bookings = data['data']['data'];
+        return bookings.map((e) => TripHistory.fromJson(e)).toList();
       }
-
-      return getVerifiedAgents(); // fallback ke dummy
+      return getTripHistory();
     } catch (e) {
-      return getVerifiedAgents(); // fallback ke dummy
+      return getTripHistory();
     }
   }
 
-  // ==================== Dummy Data (tetap ada) ====================
-
-  @override
-  List<Tour> getFeaturedTours() => [
-        const Tour(
-          id: '1',
-          title: '3D2N Raja Ampat Adventure',
-          location: 'Raja Ampat',
-          province: 'Papua Barat',
-          price: 'Rp 3.200.000',
-          duration: '3 Hari 2 Malam',
-          capacity: '12 Peserta',
-          rating: 4.9,
-          category: 'Alam',
-        ),
-        const Tour(
-          id: '2',
-          title: 'Komodo Island Explorer',
-          location: 'Labuan Bajo',
-          province: 'NTT',
-          price: 'Rp 2.500.000',
-          duration: '2 Hari 1 Malam',
-          capacity: '8 Peserta',
-          rating: 4.8,
-          category: 'Petualangan',
-        ),
-        const Tour(
-          id: '3',
-          title: 'Bali Heritage Trail',
-          location: 'Bali',
-          province: 'Bali',
-          price: 'Rp 1.800.000',
-          duration: '1 Hari',
-          capacity: '20 Peserta',
-          rating: 4.7,
-          category: 'Budaya',
-        ),
-      ];
+  // ==================== Dummy Data ====================
 
   @override
   List<Destination> getPopularDestinations() => [
-        const Destination(
-            id: '1',
+        Destination(
+            id: 1,
             name: 'Raja Ampat',
             location: 'Papua Barat',
             rating: 4.9,
             category: 'Alam'),
-        const Destination(
-            id: '2',
+        Destination(
+            id: 2,
             name: 'Labuan Bajo',
             location: 'NTT',
             rating: 4.8,
             category: 'Petualangan'),
-        const Destination(
-            id: '3',
+        Destination(
+            id: 3,
             name: 'Borobudur',
             location: 'Jawa Tengah',
             rating: 4.7,
             category: 'Budaya'),
-        const Destination(
-            id: '4',
+        Destination(
+            id: 4,
             name: 'Danau Toba',
             location: 'Sumatera Utara',
             rating: 4.6,
@@ -207,84 +325,42 @@ class TravelRepositoryImpl implements TravelRepository {
       ];
 
   @override
+  List<Tour> getFeaturedTours() => [
+        Tour(
+            id: 1,
+            title: '3D2N Raja Ampat Adventure',
+            location: 'Raja Ampat',
+            province: 'Papua Barat',
+            price: 'Rp 3.200.000',
+            duration: '3 Hari 2 Malam',
+            capacity: '12 Peserta',
+            rating: 4.9,
+            category: 'Alam'),
+        Tour(
+            id: 2,
+            title: 'Komodo Island Explorer',
+            location: 'Labuan Bajo',
+            province: 'NTT',
+            price: 'Rp 2.500.000',
+            duration: '2 Hari 1 Malam',
+            capacity: '8 Peserta',
+            rating: 4.8,
+            category: 'Petualangan'),
+      ];
+
+  @override
   List<Agent> getVerifiedAgents() => [
-        const Agent(
+        Agent(
             id: '1',
             name: 'Nusa Indah Travel',
-            location: 'Bali, Indonesia',
+            location: 'Bali',
             rating: 4.9,
             totalTours: 42,
             specialty: 'Budaya & Alam',
             isVerified: true,
             isTopPick: true),
-        const Agent(
-            id: '2',
-            name: 'Raja Explorer',
-            location: 'Raja Ampat, Papua',
-            rating: 4.8,
-            totalTours: 18,
-            specialty: 'Diving & Snorkeling',
-            isVerified: true,
-            isTopPick: false),
-        const Agent(
-            id: '3',
-            name: 'Jawa Tengah Heritage',
-            location: 'Yogyakarta, Jawa',
-            rating: 4.7,
-            totalTours: 31,
-            specialty: 'Sejarah & Kuliner',
-            isVerified: true,
-            isTopPick: false),
-        const Agent(
-            id: '4',
-            name: 'Lombok Surf & Trek',
-            location: 'Lombok, NTB',
-            rating: 4.6,
-            totalTours: 24,
-            specialty: 'Surfing & Hiking',
-            isVerified: false,
-            isTopPick: false),
       ];
 
   @override
-  List<TripHistory> getTripHistory() => [
-        const TripHistory(
-            id: '1',
-            tourName: '3D2N Raja Ampat Adventure',
-            agentName: 'Raja Explorer',
-            dateRange: '12–14 Jan 2024',
-            price: 'Rp 3.200.000',
-            status: TripStatus.completed),
-        const TripHistory(
-            id: '2',
-            tourName: 'Komodo Island Explorer',
-            agentName: 'Nusa Indah Travel',
-            dateRange: '5–6 Mar 2024',
-            price: 'Rp 2.500.000',
-            status: TripStatus.active),
-        const TripHistory(
-            id: '3',
-            tourName: 'Bali Heritage Trail',
-            agentName: 'Nusa Indah Travel',
-            dateRange: '20 Feb 2024',
-            price: 'Rp 1.800.000',
-            status: TripStatus.completed),
-        const TripHistory(
-            id: '4',
-            tourName: 'Lombok Surf & Trek',
-            agentName: 'Lombok Surf & Trek',
-            dateRange: '28 Jan 2024',
-            price: 'Rp 1.500.000',
-            status: TripStatus.cancelled),
-      ];
-
-  @override
-  UserProfile getUserProfile() => const UserProfile(
-        name: 'Budi Santoso',
-        email: 'budi.santoso@email.com',
-        totalTrips: 8,
-        totalDestinations: 3,
-        points: '1.2k',
-        membershipLevel: 'Penjelajah Premium',
-      );
+  List<TripHistory> getTripHistory() => [];
 }
