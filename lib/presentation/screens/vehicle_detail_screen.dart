@@ -46,6 +46,8 @@ class VehicleDetailArgs {
   final List<VehicleSpec> specs;
   final List<VehicleFacility> facilities;
   final VehicleSchedule? schedule;
+  final int itemId;
+  final String bookingType;
 
   const VehicleDetailArgs({
     required this.title,
@@ -59,6 +61,8 @@ class VehicleDetailArgs {
     this.specs = const [],
     this.facilities = const [],
     this.schedule,
+    required this.itemId,
+    required this.bookingType,
   });
 }
 
@@ -80,6 +84,8 @@ class VehicleDetailScreen extends StatelessWidget {
           capacity: '40 Kursi',
           imageUrl: '',
           category: 'Transportasi',
+          itemId: 0, // ← tambah
+          bookingType: 'vehicle', // ← tambah
         );
 
     return Scaffold(
@@ -782,6 +788,9 @@ class _BottomBar extends StatelessWidget {
                       capacity: d.capacity,
                       imageUrl: d.imageUrl,
                       category: d.category,
+                      itemId: d.itemId, // ← tambah
+                      bookingType: d
+                          .bookingType, // ← tambah (diteruskan dari args masuk)
                     ),
                   );
                 }

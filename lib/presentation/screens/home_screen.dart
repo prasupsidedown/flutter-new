@@ -129,7 +129,6 @@ class _HeroBanner extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Decorative pattern
             Positioned(
               right: -40,
               top: -40,
@@ -145,7 +144,6 @@ class _HeroBanner extends StatelessWidget {
               bottom: -30,
               child: _decorCircle(140, 0.04),
             ),
-            // Floating badge top right
             Positioned(
               top: 16,
               right: 16,
@@ -177,7 +175,6 @@ class _HeroBanner extends StatelessWidget {
                 ),
               ),
             ),
-            // Content
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: Column(
@@ -497,6 +494,8 @@ class _DestCard extends StatelessWidget {
           capacity: '12 Peserta',
           imageUrl: _imageForDestination(dest.name),
           category: dest.category,
+          itemId: dest.tourPackageId ?? dest.id, // ← FIXED
+          bookingType: 'package',
         ),
       ),
       child: Container(
@@ -516,7 +515,6 @@ class _DestCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image area
             ClipRRect(
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
@@ -545,7 +543,6 @@ class _DestCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // dark overlay agar teks terbaca
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -740,6 +737,8 @@ class _TourCard extends StatelessWidget {
           capacity: tour.capacity,
           imageUrl: _imageForTour(tour.title),
           category: tour.category,
+          itemId: tour.id,
+          bookingType: 'package',
         ),
       ),
       child: Container(

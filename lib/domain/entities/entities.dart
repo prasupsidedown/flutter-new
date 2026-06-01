@@ -35,6 +35,7 @@ class Destination {
   final String? province;
   final String? city;
   final String? imageUrl;
+  final int? tourPackageId; // ← tambah
 
   Destination({
     required this.id,
@@ -45,6 +46,7 @@ class Destination {
     this.province,
     this.city,
     this.imageUrl,
+    this.tourPackageId, // ← tambah
   });
 
   factory Destination.fromJson(Map<String, dynamic> json) {
@@ -61,6 +63,7 @@ class Destination {
       imageUrl: json['images'] != null && (json['images'] as List).isNotEmpty
           ? json['images'][0]['image_url']
           : null,
+      tourPackageId: json['tour_package_id'], // ← tambah
     );
   }
 }

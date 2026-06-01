@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants/app_routes.dart';
+import '../../data/repositories/travel_repository.dart';
 import 'vehicle_detail_screen.dart';
 
 // ─── Args ───────────────────────────────────────────────────────────────────
@@ -13,6 +14,8 @@ class BookingArgs {
   final String capacity;
   final String imageUrl;
   final String category;
+  final int itemId;
+  final String bookingType;
 
   const BookingArgs({
     required this.title,
@@ -22,6 +25,8 @@ class BookingArgs {
     required this.capacity,
     required this.imageUrl,
     required this.category,
+    required this.itemId,
+    required this.bookingType,
   });
 
   factory BookingArgs.fromVehicleDetail(VehicleDetailArgs v) => BookingArgs(
@@ -32,6 +37,8 @@ class BookingArgs {
         capacity: v.capacity,
         imageUrl: v.imageUrl,
         category: v.category,
+        itemId: v.itemId,
+        bookingType: v.bookingType,
       );
 }
 
@@ -137,9 +144,34 @@ class _BookingScreenState extends State<BookingScreen> {
         passengers: _passengerCount,
         seatClass: _seatClasses[_selectedSeatClass],
         totalPrice: _getTotalPrice(data.price),
-        onConfirm: () {
+        onConfirm: () async {
           Navigator.of(context).pop(); // tutup sheet
-          _showSuccessDialog();
+
+          debugPrint('=== BOOKING DEBUG ==='); // ← tambah
+          debugPrint('item_id: ${data.itemId}'); // ← tambah
+          debugPrint('booking_type: ${data.bookingType}'); // ← tambah
+
+          final repo = TravelRepositoryImpl();
+          final result = await repo.createBooking({
+            'booking_type': data.bookingType,
+            'item_id': data.itemId,
+            'travel_date': _selectedDate!.toIso8601String().split('T')[0],
+            'participants': _passengerCount,
+          });
+
+          if (!mounted) return; // ← fix error BuildContext async
+
+          if (result['success'] == true) {
+            _showSuccessDialog();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['message'] ?? 'Booking gagal'),
+                backgroundColor: AppColors.error,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
         },
       ),
     );
@@ -171,6 +203,8 @@ class _BookingScreenState extends State<BookingScreen> {
           capacity: '12 Peserta',
           imageUrl: '',
           category: 'Alam',
+          itemId: 0,
+          bookingType: 'destination',
         );
 
     return Scaffold(
