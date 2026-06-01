@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
-
 class ApiConstants {
-  static const String baseUrl = 'http://192.168.17.2:8000/api';
+  static const String baseUrl = 'http://192.168.18.67:8000/api';
 
   static String get login => '$baseUrl/login';
   static String get register => '$baseUrl/register';

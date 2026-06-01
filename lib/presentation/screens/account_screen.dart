@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/repositories/travel_repository.dart';
 import '../../domain/entities/entities.dart';
+import '../widgets/shared_widgets.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -58,9 +59,11 @@ class _AccountScreenState extends State<AccountScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.person_off_outlined, size: 64, color: AppColors.textMuted),
+                      const Icon(Icons.person_off_outlined,
+                          size: 64, color: AppColors.textMuted),
                       const SizedBox(height: 16),
-                      const Text('Gagal memuat profil', style: TextStyle(color: AppColors.textMuted)),
+                      const Text('Gagal memuat profil',
+                          style: TextStyle(color: AppColors.textMuted)),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadUserProfile,
@@ -94,11 +97,15 @@ class _AccountScreenState extends State<AccountScreen> {
                               height: 70,
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [Color(0xFF2D4A3E), Color(0xFF1A3328)],
+                                  colors: [
+                                    Color(0xFF2D4A3E),
+                                    Color(0xFF1A3328)
+                                  ],
                                 ),
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Icon(Icons.person, color: Colors.white, size: 36),
+                              child: const Icon(Icons.person,
+                                  color: Colors.white, size: 36),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -138,7 +145,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      
+
                       // Menu Items
                       _MenuItem(
                         icon: Icons.history_outlined,
@@ -158,7 +165,7 @@ class _AccountScreenState extends State<AccountScreen> {
                         onTap: () {},
                       ),
                       const SizedBox(height: 20),
-                      
+
                       // Logout Button
                       GestureDetector(
                         onTap: _handleLogout,
@@ -181,9 +188,11 @@ class _AccountScreenState extends State<AccountScreen> {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
+      bottomNavigationBar: const MobiBottomNav(currentIndex: 3),
     );
   }
 }
@@ -225,7 +234,8 @@ class _MenuItem extends StatelessWidget {
                 ),
               ),
             ),
-            const Icon(Icons.chevron_right, size: 20, color: AppColors.textMuted),
+            const Icon(Icons.chevron_right,
+                size: 20, color: AppColors.textMuted),
           ],
         ),
       ),

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,25 +7,18 @@ import '../../core/constants/api_constants.dart';
 import '../../domain/entities/entities.dart';
 
 abstract class TravelRepository {
-  // Auth
   Future<Map<String, dynamic>> login(String email, String password);
   Future<Map<String, dynamic>> register(
       String name, String email, String password, String phone);
   Future<void> logout();
   Future<String?> getToken();
   Future<Map<String, dynamic>> getUserProfile();
-
-  // Data
   Future<List<Destination>> fetchDestinations();
   Future<List<Tour>> fetchTourPackages();
   Future<List<Vehicle>> fetchVehicles();
   Future<List<Agent>> fetchAgents();
-
-  // Booking
   Future<Map<String, dynamic>> createBooking(Map<String, dynamic> data);
   Future<List<TripHistory>> fetchMyBookings();
-
-  // Dummy (untuk fallback)
   List<Destination> getPopularDestinations();
   List<Tour> getFeaturedTours();
   List<Agent> getVerifiedAgents();
@@ -32,7 +26,7 @@ abstract class TravelRepository {
 }
 
 class TravelRepositoryImpl implements TravelRepository {
-  final bool _isWeb = identical(0, 0.0) ? false : true;
+  final bool _isWeb = kIsWeb;
   final _secureStorage = const FlutterSecureStorage();
 
   Future<SharedPreferences> _getPrefs() async =>
@@ -66,8 +60,6 @@ class TravelRepositoryImpl implements TravelRepository {
     }
   }
 
-  // ==================== Auth API ====================
-
   @override
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
@@ -80,6 +72,9 @@ class TravelRepositoryImpl implements TravelRepository {
         body: jsonEncode({'email': email, 'password': password}),
       );
 
+      debugPrint('LOGIN STATUS: ${res.statusCode}');
+      debugPrint('LOGIN BODY: ${res.body}');
+
       final data = jsonDecode(res.body);
 
       if (res.statusCode == 200 && data['success'] == true) {
@@ -88,6 +83,7 @@ class TravelRepositoryImpl implements TravelRepository {
       }
       return {'success': false, 'message': data['message'] ?? 'Login gagal'};
     } catch (e) {
+      debugPrint('LOGIN ERROR: $e');
       return {'success': false, 'message': 'Tidak dapat terhubung ke server'};
     }
   }
@@ -145,8 +141,9 @@ class TravelRepositoryImpl implements TravelRepository {
   Future<Map<String, dynamic>> getUserProfile() async {
     try {
       final token = await getToken();
-      if (token == null)
+      if (token == null) {
         return {'success': false, 'message': 'Token tidak ditemukan'};
+      }
 
       final res = await http.get(
         Uri.parse(ApiConstants.profile),
@@ -168,8 +165,6 @@ class TravelRepositoryImpl implements TravelRepository {
       return {'success': false, 'message': 'Tidak dapat terhubung ke server'};
     }
   }
-
-  // ==================== API Data ====================
 
   @override
   Future<List<Destination>> fetchDestinations() async {
@@ -239,8 +234,9 @@ class TravelRepositoryImpl implements TravelRepository {
   Future<Map<String, dynamic>> createBooking(Map<String, dynamic> data) async {
     try {
       final token = await getToken();
-      if (token == null)
+      if (token == null) {
         return {'success': false, 'message': 'Silakan login terlebih dahulu'};
+      }
 
       final res = await http.post(
         Uri.parse(ApiConstants.createBooking),
@@ -293,8 +289,6 @@ class TravelRepositoryImpl implements TravelRepository {
       return getTripHistory();
     }
   }
-
-  // ==================== Dummy Data ====================
 
   @override
   List<Destination> getPopularDestinations() => [
