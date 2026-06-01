@@ -17,12 +17,29 @@ class _HomeScreenState extends State<HomeScreen> {
   String _selectedCategory = 'Pantai';
   final _repo = TravelRepositoryImpl();
 
+  List<Destination> _allDestinations = [];
+  List<Tour> _tours = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final destinations = await _repo.fetchDestinations();
+    final tours = await _repo.fetchTourPackages();
+    setState(() {
+      _allDestinations = destinations;
+      _tours = tours;
+      _isLoading = false;
+    });
+  }
+
   List<Destination> _getFilteredDestinations() {
-    final allDestinations = _repo.getPopularDestinations();
-    if (_selectedCategory == 'Lainnya') {
-      return allDestinations;
-    }
-    return allDestinations
+    if (_selectedCategory == 'Lainnya') return _allDestinations;
+    return _allDestinations
         .where((dest) => dest.category == _selectedCategory)
         .toList();
   }
@@ -35,46 +52,47 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tours = _repo.getFeaturedTours();
     final filteredDestinations = _getFilteredDestinations();
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const MobiAppBar(),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _HeroBanner(onExplore: () {}),
-            const SizedBox(height: 20),
-            _SearchBar(),
-            const SizedBox(height: 20),
-            _CategoryRow(
-              selectedCategory: _selectedCategory,
-              onCategorySelected: _onCategorySelected,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _HeroBanner(onExplore: () {}),
+                  const SizedBox(height: 20),
+                  _SearchBar(),
+                  const SizedBox(height: 20),
+                  _CategoryRow(
+                    selectedCategory: _selectedCategory,
+                    onCategorySelected: _onCategorySelected,
+                  ),
+                  const SizedBox(height: 28),
+                  SectionHeader(
+                    title: 'Destinasi Populer',
+                    actionLabel: 'Lihat Semua',
+                    onAction: () {},
+                  ),
+                  const SizedBox(height: 14),
+                  _DestinationList(destinations: filteredDestinations),
+                  const SizedBox(height: 28),
+                  SectionHeader(
+                    title: 'Tur Terpilih',
+                    actionLabel: 'Lihat Semua',
+                    onAction: () {},
+                  ),
+                  const SizedBox(height: 14),
+                  _TourList(tours: _tours),
+                  const SizedBox(height: 24),
+                  _PromoCard(),
+                  const SizedBox(height: 90),
+                ],
+              ),
             ),
-            const SizedBox(height: 28),
-            SectionHeader(
-              title: 'Destinasi Populer',
-              actionLabel: 'Lihat Semua',
-              onAction: () {},
-            ),
-            const SizedBox(height: 14),
-            _DestinationList(destinations: filteredDestinations),
-            const SizedBox(height: 28),
-            SectionHeader(
-              title: 'Tur Terpilih',
-              actionLabel: 'Lihat Semua',
-              onAction: () {},
-            ),
-            const SizedBox(height: 14),
-            _TourList(tours: tours),
-            const SizedBox(height: 24),
-            _PromoCard(),
-            const SizedBox(height: 90),
-          ],
-        ),
-      ),
       bottomNavigationBar: const MobiBottomNav(currentIndex: 0),
     );
   }

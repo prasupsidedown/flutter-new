@@ -171,13 +171,17 @@ class TravelRepositoryImpl implements TravelRepository {
     try {
       final res = await http.get(Uri.parse(ApiConstants.destinations),
           headers: {'Accept': 'application/json'});
+      debugPrint('DESTINATIONS STATUS: ${res.statusCode}');
+      debugPrint('DESTINATIONS BODY: ${res.body}');
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
         final List destinations = data['data']['data'];
+        debugPrint('DESTINATIONS COUNT: ${destinations.length}');
         return destinations.map((e) => Destination.fromJson(e)).toList();
       }
       return getPopularDestinations();
     } catch (e) {
+      debugPrint('DESTINATIONS ERROR: $e');
       return getPopularDestinations();
     }
   }

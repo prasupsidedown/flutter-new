@@ -53,10 +53,14 @@ class Destination {
       name: json['name'] ?? '',
       location: json['location'] ?? json['city'] ?? '',
       rating: (json['rating'] ?? 4.5).toDouble(),
-      category: json['category'] ?? 'Wisata',
+      category: json['category'] is Map
+          ? (json['category']['name'] ?? 'Wisata')
+          : (json['category'] ?? 'Wisata'),
       province: json['province'],
       city: json['city'],
-      imageUrl: json['image_url'],
+      imageUrl: json['images'] != null && (json['images'] as List).isNotEmpty
+          ? json['images'][0]['image_url']
+          : null,
     );
   }
 }
@@ -86,17 +90,26 @@ class Tour {
   });
 
   factory Tour.fromJson(Map<String, dynamic> json) {
+    final destination = json['destination'] is Map ? json['destination'] : null;
+
     return Tour(
       id: json['id'] ?? 0,
       title: json['name'] ?? '',
-      location: json['location'] ?? json['city'] ?? '',
-      province: json['province'] ?? '',
+      location: destination?['location'] ??
+          destination?['city'] ??
+          json['location'] ??
+          '',
+      province: destination?['province'] ?? json['province'] ?? '',
       price:
           'Rp ${(json['price'] ?? 0).toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
       duration: json['duration'] ?? '1 Hari',
       capacity: '${json['quota'] ?? 0} Peserta',
       rating: (json['rating'] ?? 4.5).toDouble(),
-      category: json['category'] ?? 'Wisata',
+      category: json['category'] is Map
+          ? (json['category']['name'] ?? 'Wisata')
+          : (destination?['category'] is Map
+              ? (destination!['category']['name'] ?? 'Wisata')
+              : (json['category'] ?? 'Wisata')),
     );
   }
 }
