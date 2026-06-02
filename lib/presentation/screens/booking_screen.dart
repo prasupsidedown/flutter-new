@@ -42,6 +42,20 @@ class BookingArgs {
       );
 }
 
+// ─── FIX ERROR 1: Tambah class QrisPaymentArgs ───────────────────────────────
+
+class QrisPaymentArgs {
+  final String bookingCode;
+  final String tourName;
+  final int totalAmount;
+
+  const QrisPaymentArgs({
+    required this.bookingCode,
+    required this.tourName,
+    required this.totalAmount,
+  });
+}
+
 // ─── Screen ─────────────────────────────────────────────────────────────────
 
 class BookingScreen extends StatefulWidget {
@@ -76,13 +90,11 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   String _getTotalPrice(String basePrice) {
-    // Parse harga dari string "Rp 1.500.000"
     final clean = basePrice.replaceAll(RegExp(r'[^0-9]'), '');
     final base = int.tryParse(clean) ?? 0;
     final multipliers = [1.0, 1.5, 2.0];
     final total =
         (base * multipliers[_selectedSeatClass] * _passengerCount).toInt();
-    // Format ke Rupiah
     final formatted = total.toString().replaceAllMapped(
           RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
           (m) => '${m[1]}.',
@@ -147,9 +159,9 @@ class _BookingScreenState extends State<BookingScreen> {
         onConfirm: () async {
           Navigator.of(context).pop(); // tutup sheet
 
-          debugPrint('=== BOOKING DEBUG ==='); // ← tambah
-          debugPrint('item_id: ${data.itemId}'); // ← tambah
-          debugPrint('booking_type: ${data.bookingType}'); // ← tambah
+          debugPrint('=== BOOKING DEBUG ===');
+          debugPrint('item_id: ${data.itemId}');
+          debugPrint('booking_type: ${data.bookingType}');
 
           final repo = TravelRepositoryImpl();
           final result = await repo.createBooking({
@@ -159,10 +171,18 @@ class _BookingScreenState extends State<BookingScreen> {
             'participants': _passengerCount,
           });
 
-          if (!mounted) return; // ← fix error BuildContext async
+          if (!mounted) return;
 
           if (result['success'] == true) {
-            _showSuccessDialog();
+            Navigator.pushReplacementNamed(
+              context,
+              AppRoutes.qrisPayment,
+              arguments: QrisPaymentArgs(
+                bookingCode: result['data']['booking_code'],
+                tourName: data.title,
+                totalAmount: result['data']['total_amount'] ?? 0,
+              ),
+            );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -177,19 +197,7 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _SuccessDialog(
-        onDone: () {
-          Navigator.of(context)
-            ..pop() // tutup dialog
-            ..popUntil((r) => r.settings.name == AppRoutes.home);
-        },
-      ),
-    );
-  }
+  // FIX ERROR 2: _showSuccessDialog dihapus karena tidak dipakai
 
   @override
   Widget build(BuildContext context) {
@@ -220,18 +228,15 @@ class _BookingScreenState extends State<BookingScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Ringkasan Destinasi ──
                     _SummaryCard(data: data),
                     const SizedBox(height: 16),
 
-                    // ── Pilih Tanggal ──
                     _SectionTitle(
                         'Tanggal Keberangkatan', Icons.calendar_today_outlined),
                     const SizedBox(height: 10),
                     _DatePicker(selected: _selectedDate, onTap: _pickDate),
                     const SizedBox(height: 16),
 
-                    // ── Kelas Kursi ──
                     _SectionTitle('Kelas Kursi',
                         Icons.airline_seat_recline_extra_outlined),
                     const SizedBox(height: 10),
@@ -243,23 +248,24 @@ class _BookingScreenState extends State<BookingScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // ── Jumlah Penumpang ──
                     _SectionTitle('Jumlah Penumpang', Icons.people_outline),
                     const SizedBox(height: 10),
+                    // FIX ERROR 3 & 4: if statements dibungkus kurung kurawal
                     _PassengerCounter(
                       count: _passengerCount,
                       onDecrement: () {
-                        if (_passengerCount > 1)
+                        if (_passengerCount > 1) {
                           setState(() => _passengerCount--);
+                        }
                       },
                       onIncrement: () {
-                        if (_passengerCount < 12)
+                        if (_passengerCount < 12) {
                           setState(() => _passengerCount++);
+                        }
                       },
                     ),
                     const SizedBox(height: 16),
 
-                    // ── Data Pemesan ──
                     _SectionTitle('Data Pemesan', Icons.person_outline),
                     const SizedBox(height: 10),
                     _FormCard(
@@ -274,8 +280,6 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
             ),
           ),
-
-          // ── Bottom Bar ──
           _BookingBottomBar(
             totalPrice: _getTotalPrice(data.price),
             onBook: () => _submitBooking(data),
@@ -395,7 +399,6 @@ class _SummaryCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Thumbnail
           Container(
             width: 64,
             height: 64,
@@ -736,9 +739,8 @@ class _PassengerCounter extends StatelessWidget {
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textPrimary)),
-                Text('Maks. 12 orang',
-                    style: const TextStyle(
-                        fontSize: 11, color: AppColors.textMuted)),
+                const Text('Maks. 12 orang',
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
               ],
             ),
           ),
@@ -1096,7 +1098,6 @@ class _ConfirmSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
           Container(
               width: 40,
               height: 4,
@@ -1110,10 +1111,9 @@ class _ConfirmSheet extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary)),
           const SizedBox(height: 4),
-          Text('Pastikan data di bawah sudah benar',
+          const Text('Pastikan data di bawah sudah benar',
               style: TextStyle(fontSize: 13, color: AppColors.textMuted)),
           const SizedBox(height: 20),
-          // Detail rows
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1227,75 +1227,6 @@ class _ConfirmRow extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                   color: AppColors.textPrimary)),
         ],
-      ),
-    );
-  }
-}
-
-// ─── Success Dialog ───────────────────────────────────────────────────────────
-
-class _SuccessDialog extends StatelessWidget {
-  final VoidCallback onDone;
-  const _SuccessDialog({required this.onDone});
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      child: Container(
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.successBg,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check_circle_outline_rounded,
-                  color: AppColors.success, size: 46),
-            ),
-            const SizedBox(height: 16),
-            const Text('Pemesanan Berhasil!',
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary)),
-            const SizedBox(height: 8),
-            Text(
-              'Pesanan kamu telah diterima.\nTim kami akan segera menghubungi kamu.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 13, color: AppColors.textSecondary, height: 1.5),
-            ),
-            const SizedBox(height: 24),
-            GestureDetector(
-              onTap: onDone,
-              child: Container(
-                width: double.infinity,
-                height: 50,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFF2D4A3E), Color(0xFF1E3D32)]),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Center(
-                  child: Text('Kembali ke Beranda',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14)),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

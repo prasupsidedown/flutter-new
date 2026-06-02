@@ -16,6 +16,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
   int _selectedFilter = 0;
   final _filters = ['Semua', 'Aktif', 'Selesai', 'Dibatalkan'];
 
+  // ✅ FIX: pakai Future untuk fetch dari API
+  late Future<List<TripHistory>> _tripsFuture;
+  final _repo = TravelRepositoryImpl();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTrips();
+  }
+
+  void _loadTrips() {
+    setState(() {
+      _tripsFuture = _repo.fetchMyBookings(); // ✅ hit API beneran
+    });
+  }
+
   TripStatus? get _filterStatus {
     switch (_selectedFilter) {
       case 1:
@@ -29,14 +45,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
+  List<TripHistory> _applyFilter(List<TripHistory> all) {
+    if (_filterStatus == null) return all;
+    return all.where((t) => t.status == _filterStatus).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final repo = TravelRepositoryImpl();
-    final allTrips = repo.getTripHistory();
-    final filtered = _filterStatus == null
-        ? allTrips
-        : allTrips.where((t) => t.status == _filterStatus).toList();
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -84,64 +99,126 @@ class _HistoryScreenState extends State<HistoryScreen> {
           child: Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 36,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _filters.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, i) {
-                      final isSelected = _selectedFilter == i;
-                      return GestureDetector(
-                        onTap: () =>
-                            setState(() => _selectedFilter = i),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColors.primary
-                                : AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            _filters[i],
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: isSelected
-                                  ? Colors.white
-                                  : AppColors.textSecondary,
-                            ),
-                          ),
+            child: SizedBox(
+              height: 36,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _filters.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  final isSelected = _selectedFilter == i;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedFilter = i),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color:
+                            isSelected ? AppColors.primary : AppColors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _filters[i],
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textSecondary,
                         ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
         ),
       ),
-      body: filtered.isEmpty
-          ? _EmptyState()
-          : ListView.separated(
+
+      // ✅ FIX: gunakan FutureBuilder agar data di-load dari API
+      body: FutureBuilder<List<TripHistory>>(
+        future: _tripsFuture,
+        builder: (context, snapshot) {
+          // Loading state
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            );
+          }
+
+          // Error state
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.wifi_off_outlined,
+                      size: 48, color: AppColors.textMuted),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Gagal memuat riwayat',
+                    style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Periksa koneksi internet Anda',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: _loadTrips,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Coba Lagi'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final allTrips = snapshot.data ?? [];
+          final filtered = _applyFilter(allTrips);
+
+          // Empty state
+          if (filtered.isEmpty) {
+            return _EmptyState(onRefresh: _loadTrips);
+          }
+
+          // Data list
+          return RefreshIndicator(
+            color: AppColors.primary,
+            onRefresh: () async => _loadTrips(),
+            child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 90),
               itemCount: filtered.length,
               separatorBuilder: (_, __) => const SizedBox(height: 14),
-              itemBuilder: (context, i) =>
-                  _HistoryCard(trip: filtered[i]),
+              itemBuilder: (context, i) => _HistoryCard(trip: filtered[i]),
             ),
+          );
+        },
+      ),
+
       bottomNavigationBar: const MobiBottomNav(currentIndex: 2),
     );
   }
 }
 
+// ==================== Empty State ====================
 class _EmptyState extends StatelessWidget {
+  final VoidCallback onRefresh;
+  const _EmptyState({required this.onRefresh});
+
   @override
   Widget build(BuildContext context) {
     return Center(
@@ -172,12 +249,22 @@ class _EmptyState extends StatelessWidget {
             'Mulai pesan tur pertama Anda!',
             style: TextStyle(fontSize: 13, color: AppColors.textMuted),
           ),
+          const SizedBox(height: 20),
+          TextButton.icon(
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('Refresh'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primary,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
+// ==================== History Card ====================
 class _HistoryCard extends StatelessWidget {
   final TripHistory trip;
   const _HistoryCard({required this.trip});
@@ -224,17 +311,15 @@ class _HistoryCard extends StatelessWidget {
           Row(
             children: [
               StatusBadge(
-                  label: _statusLabel,
-                  color: _statusColor,
-                  bgColor: _statusBg),
+                  label: _statusLabel, color: _statusColor, bgColor: _statusBg),
               const Spacer(),
               const Icon(Icons.calendar_today_outlined,
                   size: 12, color: AppColors.textMuted),
               const SizedBox(width: 4),
               Text(
                 trip.dateRange,
-                style: const TextStyle(
-                    fontSize: 12, color: AppColors.textMuted),
+                style:
+                    const TextStyle(fontSize: 12, color: AppColors.textMuted),
               ),
             ],
           ),
@@ -321,6 +406,7 @@ class _HistoryCard extends StatelessWidget {
   }
 }
 
+// ==================== Action Button ====================
 class _ActionButton extends StatelessWidget {
   final TripHistory trip;
   const _ActionButton({required this.trip});
@@ -334,10 +420,9 @@ class _ActionButton extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: AppColors.accent),
             foregroundColor: AppColors.accent,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
@@ -346,15 +431,13 @@ class _ActionButton extends StatelessWidget {
         );
       case TripStatus.active:
         return ElevatedButton(
-          onPressed: () =>
-              Navigator.pushNamed(context, AppRoutes.account),
+          onPressed: () => Navigator.pushNamed(context, AppRoutes.account),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             elevation: 0,
@@ -367,13 +450,11 @@ class _ActionButton extends StatelessWidget {
           onPressed: () {},
           style: TextButton.styleFrom(
             foregroundColor: AppColors.textMuted,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             minimumSize: Size.zero,
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          child: const Text('Lihat Detail',
-              style: TextStyle(fontSize: 13)),
+          child: const Text('Lihat Detail', style: TextStyle(fontSize: 13)),
         );
     }
   }

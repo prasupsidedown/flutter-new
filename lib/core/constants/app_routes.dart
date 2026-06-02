@@ -12,4 +12,5 @@ class AppRoutes {
   static const String history = '/history';
   static const String account = '/account';
   static const String vehicleDetail = '/vehicle-detail';
+  static const String qrisPayment = '/qris-payment';
 }

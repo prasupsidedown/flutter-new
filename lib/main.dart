@@ -10,6 +10,7 @@ import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/register_screen.dart';
 import 'presentation/screens/vehicle_detail_screen.dart';
 import 'presentation/screens/booking_screen.dart';
+import 'presentation/screens/qris_payment_screen.dart'; // ← FIX: tambah import ini
 import 'presentation/widgets/virtual_assistant_overlay.dart';
 
 void main() {
@@ -53,6 +54,7 @@ class MobiTravelApp extends StatelessWidget {
             const VirtualAssistantOverlay(child: VehicleDetailScreen()),
         AppRoutes.booking: (_) =>
             const VirtualAssistantOverlay(child: BookingScreen()),
+        AppRoutes.qrisPayment: (context) => const QrisPaymentScreen(),
       },
     );
   }

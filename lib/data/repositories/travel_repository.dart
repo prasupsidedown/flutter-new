@@ -19,6 +19,8 @@ abstract class TravelRepository {
   Future<List<Agent>> fetchAgents();
   Future<Map<String, dynamic>> createBooking(Map<String, dynamic> data);
   Future<List<TripHistory>> fetchMyBookings();
+  Future<Map<String, dynamic>> getPaymentData(String bookingCode); // ← BARU
+  Future<Map<String, dynamic>> confirmPayment(String bookingCode); // ← BARU
   List<Destination> getPopularDestinations();
   List<Tour> getFeaturedTours();
   List<Agent> getVerifiedAgents();
@@ -291,6 +293,76 @@ class TravelRepositoryImpl implements TravelRepository {
       return getTripHistory();
     } catch (e) {
       return getTripHistory();
+    }
+  }
+
+  // ─── BARU: Ambil data pembayaran QRIS berdasarkan booking code ──────────────
+  @override
+  Future<Map<String, dynamic>> getPaymentData(String bookingCode) async {
+    try {
+      final token = await getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'Silakan login terlebih dahulu'};
+      }
+
+      final res = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/bookings/$bookingCode/payment'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+
+      debugPrint('GET PAYMENT STATUS: ${res.statusCode}');
+      debugPrint('GET PAYMENT BODY: ${res.body}');
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200 && data['success'] == true) {
+        return {'success': true, 'data': data['data']};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Gagal memuat data pembayaran'
+      };
+    } catch (e) {
+      debugPrint('GET PAYMENT ERROR: $e');
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server'};
+    }
+  }
+
+  // ─── BARU: Konfirmasi pembayaran sudah dilakukan ─────────────────────────────
+  @override
+  Future<Map<String, dynamic>> confirmPayment(String bookingCode) async {
+    try {
+      final token = await getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'Silakan login terlebih dahulu'};
+      }
+
+      final res = await http.post(
+        Uri.parse(
+            '${ApiConstants.baseUrl}/bookings/$bookingCode/confirm-payment'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      debugPrint('CONFIRM PAYMENT STATUS: ${res.statusCode}');
+      debugPrint('CONFIRM PAYMENT BODY: ${res.body}');
+
+      final data = jsonDecode(res.body);
+      if (res.statusCode == 200 && data['success'] == true) {
+        return {'success': true, 'message': data['message']};
+      }
+      return {
+        'success': false,
+        'message': data['message'] ?? 'Konfirmasi pembayaran gagal'
+      };
+    } catch (e) {
+      debugPrint('CONFIRM PAYMENT ERROR: $e');
+      return {'success': false, 'message': 'Tidak dapat terhubung ke server'};
     }
   }
 

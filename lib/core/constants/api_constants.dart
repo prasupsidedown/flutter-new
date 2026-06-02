@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'http://192.168.1.215:8000/api';
+  static const String baseUrl = 'http://32.236.14.31/api';
 
   static String get login => '$baseUrl/login';
   static String get register => '$baseUrl/register';
@@ -13,4 +13,10 @@ class ApiConstants {
 
   static String get createBooking => '$baseUrl/bookings';
   static String get myBookings => '$baseUrl/my-bookings';
+
+  // ✅ Tambahan baru untuk payment QRIS
+  static String bookingPayment(String bookingCode) =>
+      '$baseUrl/bookings/$bookingCode/payment';
+  static String confirmPayment(String bookingCode) =>
+      '$baseUrl/bookings/$bookingCode/confirm-payment';
 }
